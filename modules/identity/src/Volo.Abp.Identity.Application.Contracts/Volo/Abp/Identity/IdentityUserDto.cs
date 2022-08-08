@@ -29,5 +29,7 @@ public class IdentityUserDto : ExtensibleFullAuditedEntityDto<Guid>, IMultiTenan
 
     public DateTimeOffset? LockoutEnd { get; set; }
 
+    public string[] RoleNames { get; set; }
+
     public string ConcurrencyStamp { get; set; }
 }

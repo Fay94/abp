@@ -33,9 +33,24 @@ public class IdentityUserAppService : IdentityAppServiceBase, IIdentityUserAppSe
     [Authorize(IdentityPermissions.Users.Default)]
     public virtual async Task<IdentityUserDto> GetAsync(Guid id)
     {
-        return ObjectMapper.Map<IdentityUser, IdentityUserDto>(
+        return await SetRoleNames(ObjectMapper.Map<IdentityUser, IdentityUserDto>(
             await UserManager.GetByIdAsync(id)
-        );
+        ));
+    }
+
+    protected virtual async Task<IdentityUserDto> SetRoleNames(IdentityUserDto user)
+    {
+        user.RoleNames = (await UserRepository.GetRoleNamesAsync(user.Id)).ToArray();
+        return user;
+    }
+
+    protected virtual async Task<List<IdentityUserDto>> SetRoleNames(List<IdentityUserDto> users)
+    {
+        foreach (var user in users)
+        {
+            await SetRoleNames(user);
+        }
+        return users;
     }
 
     [Authorize(IdentityPermissions.Users.Default)]
@@ -46,7 +61,7 @@ public class IdentityUserAppService : IdentityAppServiceBase, IIdentityUserAppSe
 
         return new PagedResultDto<IdentityUserDto>(
             count,
-            ObjectMapper.Map<List<IdentityUser>, List<IdentityUserDto>>(list)
+            await SetRoleNames(ObjectMapper.Map<List<IdentityUser>, List<IdentityUserDto>>(list))
         );
     }
 
@@ -90,7 +105,7 @@ public class IdentityUserAppService : IdentityAppServiceBase, IIdentityUserAppSe
 
         await CurrentUnitOfWork.SaveChangesAsync();
 
-        return ObjectMapper.Map<IdentityUser, IdentityUserDto>(user);
+        return await SetRoleNames(ObjectMapper.Map<IdentityUser, IdentityUserDto>(user));
     }
 
     [Authorize(IdentityPermissions.Users.Update)]
@@ -117,7 +132,7 @@ public class IdentityUserAppService : IdentityAppServiceBase, IIdentityUserAppSe
 
         await CurrentUnitOfWork.SaveChangesAsync();
 
-        return ObjectMapper.Map<IdentityUser, IdentityUserDto>(user);
+        return await SetRoleNames(ObjectMapper.Map<IdentityUser, IdentityUserDto>(user));
     }
 
     [Authorize(IdentityPermissions.Users.Delete)]
@@ -182,6 +197,10 @@ public class IdentityUserAppService : IdentityAppServiceBase, IIdentityUserAppSe
         if (input.RoleNames != null)
         {
             (await UserManager.SetRolesAsync(user, input.RoleNames)).CheckErrors();
+        }
+        if (input.OrganizationUnitIds != null)
+        {
+            await UserManager.SetOrganizationUnitsAsync(user, input.OrganizationUnitIds);
         }
     }
 }
